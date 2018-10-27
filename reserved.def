@@ -1,0 +1,12 @@
+inline constexpr static auto RESERVED = {
+    "true",     "false",     "operator",  "using",     "match", "default",
+    "type",     "await",     "async",     "func",      "new",   "sizeof",
+    "alignof",  "append",    "len",       "cast",      "let",   "mut",
+    "where",    "select",    "if",        "else",      "for",   "in",
+    "while",    "return",    "co_return", "delete",    "yield", "break",
+    "continue", "defer",     "chan",      "atomic",    "class", "enum",
+    "struct",   "interface", "extern",    "export",    "use",   "hiding",
+    "as",       "qualified", "module",    "OPTIONS",   "bool",  "int",
+    "uint",     "int64",     "uint64",    "char",      "void",  "half",
+    "float",    "double",    "auto",      "nullptr",   "this",  "main",
+    "__ctor",   "__dtor",    "inline",    "mustinline"};

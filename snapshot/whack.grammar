@@ -1,0 +1,282 @@
+character : /'.'/ ;
+
+integral : /[-]?[0-9]+/ ;
+
+floatingpt : /[-]?[0-9]+['.'][0-9]*['f']?/ ;
+
+boolean : "true" | "false";
+
+string : /\"(\\\\.|[^\"])*\"/ ;
+
+ident   : /[a-zA-Z_][a-zA-Z0-9_]*/ ;
+
+identlist : <ident> (',' <ident>)* ;
+
+overloadid : <ident> ("::" <ident>)* "::" "operator" (<type> | <overloadableops>) ;
+
+scoperes : <ident> ("::" <ident>)+ ;
+
+identifier : <overloadid> | <scoperes> | <ident> ;
+
+alias : "using" <identlist> '=' <typelist> ';' ;
+
+match   : "match" '(' <exprlist> ')' '{'
+            (<exprlist> ':' <stmt>)+
+            ("default" ':' <stmt>)?
+          '}' ;
+
+typeswitch : "match" "type" '(' <exprlist> ')' '{'
+                (<typelist> ':' <stmt>)+
+                ("default" ':' <stmt>)?
+              '}' ;
+
+callable : <closure> | <overloadid> | <scoperes> | <variable> ;
+
+funccall : ("await" | "async")? <callable> ("->" <callable>)* ('(' <exprlist>? ')')+ ;
+
+capture : <ident> ('&' | ('=' <expression>))? ;
+
+closure : "func" ('[' (<capture> (',' <capture>)*)? ']')? '(' <args>? ')' <typelist>? <tags>? <body> ;
+
+initlist : '{' <exprlist> ? '}' ;
+
+listcomprehension : '{' <identlist> <forinexpr> (',' <forinexpr>)* '}' ;
+
+memberinitlist : '{' <ident> ':' <expression> (',' <ident> ':' <expression>)* '}' ;
+
+initializer : <memberinitlist> | <listcomprehension> | <initlist> ;
+
+value : <type> <initializer> ;
+
+newexpr : "new" ('(' <expression> ')')? <type> <initializer>? ;
+
+fnsizeof : "sizeof" <expansion>? '(' <expression> ')' ;
+
+fnalignof : "alignof" '(' <type> ')' ;
+
+fnappend : "append" '(' <expression> ',' <exprlist> ')' ;
+
+fnlen : "len" '(' <expression> ')' ;
+
+fncast : "cast" '<' <type> '>' '(' <expression> ')' ;
+
+expansion : "..." ;
+
+expandop : <variable> <expansion> ;
+
+deref : '*'+ <factor> ;
+
+reference : <variable> '&' ;
+
+factor : ('(' <expression> ')') | <closure> | <newexpr> | <fnsizeof> |
+    <fnalignof> | <fnappend> | <fnlen> | <fncast> | <funccall> | <receive> |
+    <expansion> | <expandop> | <preop> | <postop> | <value> | <initializer> | <character> |
+    <floatingpt> | <integral> | <boolean> | <string> | <reference> | <element> |
+    <structmember> | <identifier> | <deref> | <range> ;
+
+term : <factor> (('*' | '/' | '%') <factor>)* ;
+
+lexp : <term> (('+' | '-' | '&' | '^' | '|' | "<<" | ">>") <term>)* ;
+
+ternary : <condition> '?' <expression> ':' <expression> ;
+
+addrof : '&'(<element> | <structmember> | <identifier> | <deref>) ;
+
+expression : <addrof> | <ternary> | <boolexpr> | <lexp> ;
+
+exprlist : <expression> (',' <expression>)* ;
+
+structmember : <ident> ('.' <ident>)+ ;
+
+element : (<structmember> | <ident>) ('[' < expression > ']')+ ;
+
+rangeable : <funccall> | <integral> | <string> | <element> | <structmember> |
+            <scoperes> | <ident> ;
+
+range : <rangeable> (".." (<rangeable> "..")? ('='? <rangeable>)?)? ;
+
+letexpr : "let" "mut"? <identlist> '=' <exprlist> ("where" <comparison>)? ';' ;
+
+variable : <element> | <structmember> | <ident> ;
+
+receive : "<-" <factor> ;
+
+send : <factor> "<-" <exprlist> ;
+
+select      : "select" '{'
+                (<send> | (("let" <identlist> '=')? <receive>) ':' <stmt>)+
+                ("default" ':' <stmt>)?
+              '}' ;
+
+preop : ("--" | "++") <variable> ;
+
+postop : <variable> ("--" | "++") ;
+
+assign : <variable> (',' <variable>)* '=' <exprlist> ';' ;
+
+letbind : "let" <identifier> '(' <identlist> ')' '=' <ident> ;
+
+ifstmt      : "if"  (
+                      (
+                        <letbind> <stmt> ("else" <stmt>)?
+                      )
+                    | (
+                        <letexpr>* <condition> <stmt> ("else" <stmt>)?
+                      )
+                    ) ;
+
+forinexpr : "for" <identlist> "in" <range> ("if" <condition>) ? ;
+
+forincrexpr : "for"(<letexpr> | ';') <comparison> ';' (<preop> | <postop>)(','(<preop> | <postop>)) *;
+
+forexpr : <forinexpr> | <forincrexpr>;
+
+forstmt : <forexpr> <stmt>;
+
+whilestmt : "while" <condition> <stmt>;
+
+outstream : <variable> ("<<" <expression>)+ ;
+
+instream : <variable> (">>" <expression>)+ ;
+
+opeq : <variable> ('&' | '|' | '+' | '-' | '^' | '%' | '/' | '*' | ">>" | "<<") '=' <expression> ';';
+
+declassign : <typeident> <initializer> ? (',' <ident> <initializer>?)* ';';
+
+returnstmt : "return" <exprlist>? ';';
+
+coreturnstmt : "co_return" <exprlist>? ';';
+
+deletestmt : "delete" <exprlist> ';';
+
+yieldstmt : "yield" <exprlist>? ';';
+
+breakstmt : "break" ';';
+
+continuestmt : "continue" ';';
+
+deferstmt : "defer" <stmt> ;
+
+stmt : <body> | <yieldstmt> | <returnstmt> | <coreturnstmt> | <deletestmt> |
+       <breakstmt> | <continuestmt> | <deferstmt> | <ifstmt> | <whilestmt> |
+       <forstmt> | <select> | <alias> | <structure> | <enumeration> | <match> |
+       <typeswitch> | <declassign> | <letexpr> | <assign> | <opeq> |
+       (<funccall> | <send> | <receive> | <newexpr> | <outstream> | <instream> | <preop> |
+        <postop>)';' ;
+
+boolexpr    : '!'? '(' <boolexpr> ')'
+            | <comparison> (("&&" | "||" (<comparison> | <lexp>))*
+            | <lexp> ("&&" | "||" <boolexpr>)+ ;
+
+comparators : "<=" | ">=" | '<' | '>' | "!=" | "==" ;
+
+comparison  : '!'? '(' <comparison> ')'
+            | <lexp> (<comparators> <lexp>)+ ;
+
+conditionals : <boolexpr>
+             | <lexp> ;
+
+condition   : '!'? '(' <condition> ')'
+            | <conditionals> ("&&" | "||" <conditionals>)* ;
+
+arraytype   : '[' <integral>? ']' <type> ;
+
+fntype      : "func" '(' ((<typelist> ("->" <typelist>)?) | ("()" "->" <typelist>))? ')' ;
+
+chantype    : "chan" '<' <typelist> '>' ;
+
+atomictype  : "atomic" '<' <type> '>' ;
+
+basictypes  : <fntype>
+            | <chantype>
+            | <atomictype>
+            | <arraytype>
+            | <structdef>
+            | <enumdef>
+            | <classdef>
+            | <identifier> ;
+
+pointertype : <basictypes> '*'+ ;
+
+type        : "mut"? (<pointertype> | <basictypes>) '&'? ;
+
+typeident   : <type> <ident> ;
+
+variadicarg : <variadictype> <ident> ;
+
+args        : <variadicarg>
+            | (<typeident> (',' <typeident>)* (',' <variadicarg>)?) | (',' <variadicarg>) ;
+
+body        : '{' <stmt>* '}' ;
+
+variadictype : <type> <expansion> ;
+
+typelist    : <variadictype>
+            | <type> (',' <type>)* (',' <variadictype>)? ;
+
+tags        : '@' '(' (<scoperes> | <ident>) ('(' <exprlist> ')')?
+                    (',' (<scoperes> | <ident>) ('(' <exprlist> ')')?)* ')' ;
+
+classdef    : "class" '{'
+                 (<ident> '(' <typelist>? ')' ';')+
+              '}' ;
+
+enumdef     : "enum" (':' <ident>)? '{' <identlist> '}' ;
+
+enumeration : "type" <ident> <enumdef> ;
+
+dataclass   : "type" <ident> <classdef> ;
+
+function    : "func" <ident> '(' <args>? ')' <typelist>? <tags>? <body> ;
+
+structdef   : "struct" '{'
+                (<tags>? <declassign>)*
+              '}' ;
+
+structure   : "type" <ident> <structdef> ;
+
+overloadableops : "<<" | ">>" | "<=>" | <comparators> | "-=" | "+="
+                | '/' | '*' | "--" | '-' | "++" | '+' | "()" | "[]" ;
+
+structop    : "func" '(' "mut"? <ident> ')'
+                 "operator"(<type> | <overloadableops>)
+                   '(' (<args> | <typelist>)? ')' <type>? <tags>?
+                 (<body> | ('=' "default" ';')) ;
+
+structfunc  : "func" '(' "mut"? <ident> ')'
+                <ident> '(' <args>? ')' <typelist>? <tags>?
+                (<body> | ('=' "default" ';')) ;
+
+interfacedef   : "interface" (':' <identifier> (',' <identifier>)*)? '{'
+                   (<fntype> <ident>? ';')+
+                 '}' ;
+
+interface   : "type" <ident> <interfacedef> ;
+
+externfunc  : "extern" "func" <ident> '(' <typelist>? ')' <typelist>? ';' ;
+
+exports     : "export" <identlist> ';' ;
+
+moduleuse   : "use" <identifier> ("hiding"? '{' <identlist> '}')?
+                   (("as" <ident>) | "qualified")? ';' ;
+
+moduledecl  : "module" <ident> ;
+
+compileropt : "{-" "OPTIONS" <identlist> "-}" ;
+
+whack       : /^/ <compileropt>*
+                  <moduledecl>
+                  <moduleuse>*
+                  <exports>*
+                  (
+                      <externfunc>
+                    | <dataclass>
+                    | <interface>
+                    | <enumeration>
+                    | <structure>
+                    | <structfunc>
+                    | <structop>
+                    | <alias>
+                    | <function>
+                  )*
+              /$/ ;

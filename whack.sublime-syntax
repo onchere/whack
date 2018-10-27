@@ -1,0 +1,39 @@
+%YAML 1.2
+---
+name: Whack
+file_extensions:
+  - w
+scope: source.whack
+contexts:
+  main:
+    # Strings begin and end with quotes, and use backslashes as an escape
+    # character
+    - match: '"'
+      scope: punctuation.definition.string.begin.whack
+      push: double_quoted_string
+
+    # Comments begin with a '//' and finish at the end of the line
+    - match: '//'
+      scope: punctuation.definition.comment.whack
+      push: line_comment
+
+    # Keywords
+    - match: '\b(true|false|operator|using|match|default|type|await|async|func|new|sizeof|alignof|append|len|cast|let|mut|where|select|if|else|for|in|while|return|co_return|delete|yield|break|continue|defer|chan|atomic|class|enum|struct|interface|extern|export|use|hiding|as|qualified|module|OPTIONS|bool|int|uint|int64|uint64|char|void|half|float|double|auto|nullptr|this|main|__ctor|__dtor|inline|mustinline)\b'
+      scope: keyword.control.whack
+
+    # Numbers
+    - match: '\b(-)?[0-9]+([.][0-9]*[f]?)?\b'
+      scope: constant.numeric.whack
+
+  double_quoted_string:
+    - meta_scope: string.quoted.double.whack
+    - match: '\\.'
+      scope: constant.character.escape.whack
+    - match: '"'
+      scope: punctuation.definition.string.end.whack
+      pop: true
+
+  line_comment:
+    - meta_scope: comment.line.whack
+    - match: $
+      pop: true

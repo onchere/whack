@@ -1,0 +1,17 @@
+#define parsers                                                                \
+  character, integral, floatingpt, boolean, string, ident, identlist,          \
+      overloadid, scoperes, identifier, alias, match, typeswitch, callable,    \
+      funccall, capture, closure, initlist, listcomprehension, memberinitlist, \
+      initializer, value, newexpr, fnsizeof, fnalignof, fnappend, fnlen,       \
+      fncast, expansion, expandop, deref, reference, factor, term, lexp,       \
+      ternary, addrof, expression, exprlist, structmember, element, rangeable, \
+      range, letexpr, variable, receive, send, select, preop, postop, assign,  \
+      letbind, ifstmt, forinexpr, forincrexpr, forexpr, forstmt, whilestmt,    \
+      outstream, instream, opeq, declassign, returnstmt, coreturnstmt,         \
+      deletestmt, yieldstmt, breakstmt, continuestmt, deferstmt, stmt,         \
+      boolexpr, comparators, comparison, conditionals, condition, arraytype,   \
+      fntype, chantype, atomictype, basictypes, pointertype, type, typeident,  \
+      variadicarg, args, body, variadictype, typelist, tags, classdef,         \
+      enumdef, enumeration, dataclass, function, structdef, structure,         \
+      overloadableops, structop, structfunc, interfacedef, interface,          \
+      externfunc, exports, moduleuse, moduledecl, compileropt, whack

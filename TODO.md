@@ -1,0 +1,24 @@
+**TODO**
+========
+- [ ] Fix support for dynamic arrays (also `append` "intrinsic" function)
+- [ ] Support explicit closure variable capture/init (codegen)
+- [ ] Fix boolean expressions (mainly a grammar issue)
+- [ ] Support implicit type conversions for structs via operator overloads
+- [ ] Support binary, octal & hexadecimal numbers
+- [x] Support explicit partial function application
+- [ ] Constistent Name Mangling (currently ad-hoc) -> support `export` construct
+- [ ] Distinguish pre/post increment/decrement operator functions (via mangled names?)
+- [ ] Interfaces, inheritance
+- [ ] Refactor/Redo types/type lists
+- [ ] Comments
+- [ ] Lift the `type(<expression>)` construct to be a type
+- [ ] Refactor `fntype` grammar to accepts `args` (to support naming arg types)
+- [ ] Template to generate syntax file for sublime text from grammar
+- [ ] Proper structured bindings for pattern matching
+- [ ] Guarantee copy elision
+- [ ] Proper sublime_text tooling
+- [ ] CodeGenError class (taking string error & state?)
+- [ ] Support message passing channels & constructs
+- [ ] Support atomic types
+- [ ] Extensive testing
+- [ ] Other random refactoring/fixes/improvements...
