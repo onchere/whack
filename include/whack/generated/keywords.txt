@@ -1,0 +1,2 @@
+true|false|func|type|new|sizeof|await|async|alignof|offsetof|cast|match|default|let|mut|using|if|else|for|in|while|return|delete|yield|break|continue|unreachable|defer|class|enum|operator|struct|interface|extern|export|use|as|module|OPTIONS|bool|int8|uint8|int|uint|int64|uint64|short|char|int16|uint16|void|half|float|double|auto|int32|uint32|int128|uint128|nullptr|this|main|__ctor|__dtor|noinline|inline|mustinline|noreturn|align|const
+

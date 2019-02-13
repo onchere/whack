@@ -18,7 +18,7 @@ contexts:
       push: line_comment
 
     # Keywords
-    - match: '\b(true|false|operator|using|match|default|type|await|async|func|new|sizeof|alignof|append|len|cast|let|mut|where|select|if|else|for|in|while|return|co_return|delete|yield|break|continue|defer|chan|atomic|class|enum|struct|interface|extern|export|use|hiding|as|qualified|module|OPTIONS|bool|int|uint|int64|uint64|char|void|half|float|double|auto|nullptr|this|main|__ctor|__dtor|inline|mustinline)\b'
+    - match: '\b(true|false|func|type|mut|new|sizeof|await|async|alignof|cast|match|default|let|using|if|else|for|in|while|return|delete|yield|break|continue|unreachable|defer|class|enum|operator|struct|interface|extern|export|use|as|module|OPTIONS|bool|int8|uint8|int|uint|int64|uint64|short|char|int16|uint16|void|half|float|double|auto|int32|uint32|int128|uint128|nullptr|this|main|__ctor|__dtor|noinline|inline|mustinline|noreturn|align|const)\b'
       scope: keyword.control.whack
 
     # Numbers

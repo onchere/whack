@@ -1,5 +1,5 @@
 #
-# Copyright 2018 Onchere Bironga
+# Copyright 2018-present Onchere Bironga
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,9 +25,12 @@ set(CMAKE_CXX_FLAGS "-Wall -DFOLLY_NO_CONFIG -L${LLVM_INSTALL_DIR}/build/bin -lL
 
 include_directories(whack PUBLIC "${LLVM_INSTALL_DIR}/build/include")
 include_directories(whack PUBLIC "${LLVM_INSTALL_DIR}/include")
+# We need to access context impl to implement some things without hackery
+include_directories(whack PUBLIC "${LLVM_INSTALL_DIR}")
 include_directories(whack PUBLIC "${SPDLOG_INSTALL_DIR}/include")
 include_directories(whack PUBLIC "${FOLLY_INSTALL_DIR}")
+include_directories(whack PUBLIC include)
 
 # TODO Run ../scripts/parsers.py and/or keywords.py
 
-add_executable(whack mpc/mpc.c main.cpp)
+add_executable(whack lib/mpc/mpc.c lib/whack/main.cpp)

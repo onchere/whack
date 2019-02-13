@@ -19,7 +19,7 @@ import os, re
 from utils import read, write
 
 def getGrammarList():
-    lines = read("../whack.grammar")
+    lines = read("../build/whack.grammar")
     grammars = []
     for line in lines.split('\n'):
         match = re.match('[a-zA-Z]+', line)
@@ -28,13 +28,12 @@ def getGrammarList():
     return grammars
 
 def genParserList():
-    l, out, num, num2 = '', '', 0, 0
-    includes = ''
+    l, out = '', ''
     for grammar in getGrammarList():
         l += grammar + ', '
         out += 'parser(' + grammar + '); '
-    write('../parserlist.def', '#define parsers ' + l[:-2] + '\n')
-    write('../parsermembers.def',
+    write('../include/whack/generated/parserlist.def', '#define parsers ' + l[:-2] + '\n')
+    write('../include/whack/generated/parsermembers.def',
                 '#define parser(p) mpc_parser_t* p{mpc_new(#p)}\n' +
                 out[:-1] + 
                 '\n#undef parser')

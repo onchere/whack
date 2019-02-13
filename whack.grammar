@@ -1,10 +1,17 @@
 character : /'.'/ ;
 
-integral : /[-]?[0-9]+/ ;
+integral : /[0-9]+/ ;
 
-floatingpt : /[-]?[0-9]+['.'][0-9]*['f']?/ ;
+binary : "0b"/[0-1]+/ ;
 
-boolean : "true" | "false";
+octal : "0o"/[0-7]+/ ;
+
+hexadecimal : "0x"/[0-9a-fA-F]+/ ;
+
+floatingpt : /[0-9]+['.'][0-9]*/ ;
+
+boolean : "true"
+        | "false" ;
 
 string : /\"(\\\\.|[^\"])*\"/ ;
 
@@ -12,264 +19,339 @@ ident   : /[a-zA-Z_][a-zA-Z0-9_]*/ ;
 
 identlist : <ident> (',' <ident>)* ;
 
-overloadid : <ident> ("::" <ident>)* "::" "operator" (<type> | <overloadableops>) ;
-
 scoperes : <ident> ("::" <ident>)+ ;
 
-identifier : <overloadid> | <scoperes> | <ident> ;
-
-alias : "using" <identlist> '=' <typelist> ';' ;
-
-match   : "match" '(' <exprlist> ')' '{'
-            (<exprlist> ':' <stmt>)+
-            ("default" ':' <stmt>)?
-          '}' ;
-
-typeswitch : "match" "type" '(' <exprlist> ')' '{'
-                (<typelist> ':' <stmt>)+
-                ("default" ':' <stmt>)?
-              '}' ;
-
-callable : <closure> | <overloadid> | <scoperes> | <variable> ;
-
-funccall : ("await" | "async")? <callable> ("->" <callable>)* ('(' <exprlist>? ')')+ ;
-
-capture : <ident> ('&' | ('=' <expression>))? ;
-
-closure : "func" ('[' (<capture> (',' <capture>)*)? ']')? '(' <args>? ')' <typelist>? <tags>? <body> ;
-
-initlist : '{' <exprlist> ? '}' ;
-
-listcomprehension : '{' <identlist> <forinexpr> (',' <forinexpr>)* '}' ;
-
-memberinitlist : '{' <ident> ':' <expression> (',' <ident> ':' <expression>)* '}' ;
-
-initializer : <memberinitlist> | <listcomprehension> | <initlist> ;
-
-value : <type> <initializer> ;
-
-newexpr : "new" ('(' <expression> ')')? <type> <initializer>? ;
-
-fnsizeof : "sizeof" <expansion>? '(' <expression> ')' ;
-
-fnalignof : "alignof" '(' <type> ')' ;
-
-fnappend : "append" '(' <expression> ',' <exprlist> ')' ;
-
-fnlen : "len" '(' <expression> ')' ;
-
-fncast : "cast" '<' <type> '>' '(' <expression> ')' ;
-
-expansion : "..." ;
-
-expandop : <variable> <expansion> ;
-
-deref : '*'+ <factor> ;
-
-reference : <variable> '&' ;
-
-factor : ('(' <expression> ')') | <closure> | <newexpr> | <fnsizeof> |
-    <fnalignof> | <fnappend> | <fnlen> | <fncast> | <funccall> | <receive> |
-    <expansion> | <expandop> | <preop> | <postop> | <value> | <initializer> | <character> |
-    <floatingpt> | <integral> | <boolean> | <string> | <reference> | <element> |
-    <structmember> | <identifier> | <deref> | <range> ;
-
-term : <factor> (('*' | '/' | '%') <factor>)* ;
-
-lexp : <term> (('+' | '-' | '&' | '^' | '|' | "<<" | ">>") <term>)* ;
-
-ternary : <condition> '?' <expression> ':' <expression> ;
-
-addrof : '&'(<element> | <structmember> | <identifier> | <deref>) ;
-
-expression : <addrof> | <ternary> | <boolexpr> | <lexp> ;
-
-exprlist : <expression> (',' <expression>)* ;
-
-structmember : <ident> ('.' <ident>)+ ;
-
-element : (<structmember> | <ident>) ('[' < expression > ']')+ ;
-
-rangeable : <funccall> | <integral> | <string> | <element> | <structmember> |
-            <scoperes> | <ident> ;
-
-range : <rangeable> (".." (<rangeable> "..")? ('='? <rangeable>)?)? ;
-
-letexpr : "let" "mut"? <identlist> '=' <exprlist> ("where" <comparison>)? ';' ;
-
-variable : <element> | <structmember> | <ident> ;
-
-receive : "<-" <factor> ;
-
-send : <factor> "<-" <exprlist> ;
-
-select      : "select" '{'
-                (<send> | (("let" <identlist> '=')? <receive>) ':' <stmt>)+
-                ("default" ':' <stmt>)?
-              '}' ;
-
-preop : ("--" | "++") <variable> ;
-
-postop : <variable> ("--" | "++") ;
-
-assign : <variable> (',' <variable>)* '=' <exprlist> ';' ;
-
-letbind : "let" <identifier> '(' <identlist> ')' '=' <ident> ;
-
-ifstmt      : "if"  (
-                      (
-                        <letbind> <stmt> ("else" <stmt>)?
-                      )
-                    | (
-                        <letexpr>* <condition> <stmt> ("else" <stmt>)?
-                      )
-                    ) ;
-
-forinexpr : "for" <identlist> "in" <range> ("if" <condition>) ? ;
-
-forincrexpr : "for"(<letexpr> | ';') <comparison> ';' (<preop> | <postop>)(','(<preop> | <postop>)) *;
-
-forexpr : <forinexpr> | <forincrexpr>;
-
-forstmt : <forexpr> <stmt>;
-
-whilestmt : "while" <condition> <stmt>;
-
-outstream : <variable> ("<<" <expression>)+ ;
-
-instream : <variable> (">>" <expression>)+ ;
-
-opeq : <variable> ('&' | '|' | '+' | '-' | '^' | '%' | '/' | '*' | ">>" | "<<") '=' <expression> ';';
-
-declassign : <typeident> <initializer> ? (',' <ident> <initializer>?)* ';';
-
-returnstmt : "return" <exprlist>? ';';
-
-coreturnstmt : "co_return" <exprlist>? ';';
-
-deletestmt : "delete" <exprlist> ';';
-
-yieldstmt : "yield" <exprlist>? ';';
-
-breakstmt : "break" ';';
-
-continuestmt : "continue" ';';
-
-deferstmt : "defer" <stmt> ;
-
-stmt : <body> | <yieldstmt> | <returnstmt> | <coreturnstmt> | <deletestmt> |
-       <breakstmt> | <continuestmt> | <deferstmt> | <ifstmt> | <whilestmt> |
-       <forstmt> | <select> | <alias> | <structure> | <enumeration> | <match> |
-       <typeswitch> | <declassign> | <letexpr> | <assign> | <opeq> |
-       (<funccall> | <send> | <receive> | <newexpr> | <outstream> | <instream> | <preop> |
-        <postop>)';' ;
-
-boolexpr    : '!'? '(' <boolexpr> ')'
-            | <comparison> (("&&" | "||" (<comparison> | <lexp>))*
-            | <lexp> ("&&" | "||" <boolexpr>)+ ;
-
-comparators : "<=" | ">=" | '<' | '>' | "!=" | "==" ;
-
-comparison  : '!'? '(' <comparison> ')'
-            | <lexp> (<comparators> <lexp>)+ ;
-
-conditionals : <boolexpr>
-             | <lexp> ;
-
-condition   : '!'? '(' <condition> ')'
-            | <conditionals> ("&&" | "||" <conditionals>)* ;
-
-arraytype   : '[' <integral>? ']' <type> ;
+simplesymbolname : <scoperes>
+                 | <ident> ;
+
+overloadid : <simplesymbolname> "::" <structopname> ;
+
+identifier : <overloadid>
+           | <simplesymbolname> ;
+
+factor : ('(' <expression> ')')
+       | (('!' | '*' | '+' | '-' | '~') <factor>)
+       | <matchexpr>
+       | <closure>
+       | <newexpr>
+       | <sizeofval>
+       | <alignofval>
+       | <offsetofval>
+       | <cast>
+       | <funccall>
+       | <expansion>
+       | <expandop>
+       | <preop>
+       | <postop>
+       | <value>
+       | <memberinitlist>
+       | <initlist>
+       | <character>
+       | <floatingpt>
+       | <binary>
+       | <octal>
+       | <hexadecimal>
+       | <integral>
+       | <boolean>
+       | <string>
+       | <reference>
+       | <element>
+       | <structmember>
+       | <identifier> ;
+
+arraytype   : '[' <expression> ']' <type> ;
 
 fntype      : "func" '(' ((<typelist> ("->" <typelist>)?) | ("()" "->" <typelist>))? ')' ;
 
-chantype    : "chan" '<' <typelist> '>' ;
-
-atomictype  : "atomic" '<' <type> '>' ;
+exprtype    : "type" '(' <expression> ')' ;
 
 basictypes  : <fntype>
-            | <chantype>
-            | <atomictype>
+            | <exprtype>
             | <arraytype>
-            | <structdef>
-            | <enumdef>
-            | <classdef>
             | <identifier> ;
 
 pointertype : <basictypes> '*'+ ;
 
-type        : "mut"? (<pointertype> | <basictypes>) '&'? ;
+type        : (<pointertype> | <basictypes>) '&'? ;
 
 typeident   : <type> <ident> ;
 
 variadicarg : <variadictype> <ident> ;
 
 args        : <variadicarg>
-            | (<typeident> (',' <typeident>)* (',' <variadicarg>)?) | (',' <variadicarg>) ;
-
-body        : '{' <stmt>* '}' ;
+            | <typeident> (',' <typeident>)* (',' <variadicarg>)? ;
 
 variadictype : <type> <expansion> ;
 
 typelist    : <variadictype>
             | <type> (',' <type>)* (',' <variadictype>)? ;
 
-tags        : '@' '(' (<scoperes> | <ident>) ('(' <exprlist> ')')?
-                    (',' (<scoperes> | <ident>) ('(' <exprlist> ')')?)* ')' ;
+capture : '&' | '=' | (<ident> ('&' | ('=' <expression>))?) ;
+
+closure : "func" ('[' (<capture> (',' <capture>)*)? ']')? '(' <args>? ')' <typelist>? <body> ;
+
+newexpr : "new" ('(' <expression> ')')? <type> <initializer>? ;
+
+sizeofval : "sizeof" '(' <type> ')' ;
+
+multiplicative : <factor> (('/' | '*' | '%') <factor>)* ;
+
+additive : <multiplicative> (('+' | '-') <multiplicative>)* ;
+
+shift : <additive> (("<<" | ">>") <additive>)* ;
+
+relational : <shift> (("<=" | '<' | ">=" | '>') <shift>)* ;
+
+equality : <relational> (("==" | "!=") <relational>)* ;
+
+bitwiseand : <equality> ('&' <equality>)* ;
+
+bitwisexor : <bitwiseand> ('^' <bitwiseand>)* ;
+
+bitwiseor : <bitwisexor> ('|' <bitwisexor>)* ;
+
+logicaland : <bitwiseor> ("&&" <bitwiseor>)* ;
+
+logicalor : <logicaland> ("||" <logicaland>)* ;
+
+callable : <closure>
+         | <overloadid>
+         | <scoperes>
+         | <variable> ;
+
+funccall : ("await" | "async")?
+           <callable> ("->" <callable>)* ('(' <exprlist>? ')')+ ;
+
+initlist : '{' <exprlist>? '}' ;
+
+memberinitlist : <ident> ':' <expression> (',' <ident> ':' <expression>)* ;
+
+initializer : '{' <memberinitlist> '}'
+            | <initlist> ;
+
+value : <type> <initializer> ;
+
+alignofval : "alignof" '(' <type> ')' ;
+
+offsetofval : "offsetof" '(' <type> ',' <ident> ')' ;
+
+cast : "cast" '<' <type> '>' '(' <expression> ')' ;
+
+expansion : "..." ;
+
+expandop : <variable> <expansion> ;
+
+reference : <variable> '&' ;
+
+structmembercont : <ident> '.' ;
+
+structmember : <structmembercont> (<structopname> | <ident>) ;
+
+elementcont : <ident> '[' ;
+
+element : <elementcont> <expression> ']' ;
+
+variable : <element>
+         | <structmember>
+         | <ident> ;
+
+range : <factor> (".." (<factor> "..")? ('='? <factor>)?)? ;
+
+preop : ("--" | "++") <variable> ;
+
+postop : <variable> ("--" | "++") ;
+
+ternary : <logicalor> '?' <expression> ':' <expression> ;
+
+addrof : '&' <factor> ;
+
+exprlist : <expression> (',' <expression>)* ;
+
+matchexprcase : <exprlist> ':' <expression> ;
+
+matchexpr : "match" <expression> '{'
+              (<matchexprcase> (';' <matchexprcase>)*)?
+              "default" ':' <expression>
+            '}' ;
+
+expression : <addrof>
+           | <ternary>
+           | <logicalor> ;
+
+let : "let" "mut"? <identlist> '=' <exprlist> ;
+
+alias : "using" <identlist> '=' <typelist> ';'? ;
+
+match   : "match" <expression> '{'
+            (<exprlist> ':' <stmt>)*
+            ("default" ':' <stmt>)?
+          '}' ;
+
+typeswitch : "match" <exprtype> '{'
+                (<typelist> ':' <stmt>)*
+                ("default" ':' <stmt>)?
+              '}' ;
+
+assign : <factor> (',' <factor>)* '=' <exprlist> ;
+
+letbind : "let" <simplesymbolname> '(' <identlist> ')' '=' <expression> ;
+
+ifstmt : "if" (<letbind> | <logicalor>) <stmt> ("else" <stmt>)? ;
+
+forinexpr : "for" <identlist> "in" <range> ("if" <logicalor>)? ;
+
+forincrexpr : "for" (<stmt>+ | ';') <logicalor> ';' <stmt>* ;
+
+forexpr : <forinexpr>
+        | <forincrexpr> ;
+
+forstmt : <forexpr> <stmt> ;
+
+whilestmt : "while" <logicalor> <stmt> ;
+
+opeq : <variable> ('&' | '|' | '+' | '-' | '^' | '%' | '/' | '*' | ">>" | "<<") '=' <expression> ;
+
+declassign : <typeident> <initializer>? (',' <ident> <initializer>?)* ;
+
+returnstmt : "return" <exprlist>? ;
+
+deletestmt : "delete" <exprlist> ;
+
+yieldstmt : "yield" <exprlist>? ;
+
+breakstmt : "break" ;
+
+continuestmt : "continue" ;
+
+unreachablestmt : "unreachable" ;
+
+deferstmt : "defer" <stmt> ;
+
+stmt : <body>
+     | <typeswitch>
+     | <match>
+     | <ifstmt>
+     | <whilestmt>
+     | <forstmt>
+     | <structure>
+     | <enumeration>
+     | <dataclass>
+     | <comment>
+     | <alias>
+     | (  <yieldstmt>
+         | <returnstmt>
+         | <deletestmt>
+         | <unreachablestmt>
+         | <breakstmt>
+         | <continuestmt>
+         | <deferstmt>
+         | <let>
+         | <assign>
+         | <declassign>
+         | <opeq>
+         | <funccall>
+         | <newexpr>
+         | <preop>
+         | <postop>
+        ) ';'? ;
+
+body        : <tags>? '{' <stmt>* '}' ;
+
+tag         : <simplesymbolname> ('(' <exprlist> ')')? ;
+
+tags        : ('@' <tag>)
+            | ('@' '(' <tag> (',' <tag>)* ')') ;
 
 classdef    : "class" '{'
-                 (<ident> '(' <typelist>? ')' ';')+
+                 (<ident> '(' <typelist>? ')')+
               '}' ;
 
 enumdef     : "enum" (':' <ident>)? '{' <identlist> '}' ;
 
-enumeration : "type" <ident> <enumdef> ;
+enumeration : <ident> <enumdef> ;
 
-dataclass   : "type" <ident> <classdef> ;
+dataclass   : <ident> <classdef> ;
 
-function    : "func" <ident> '(' <args>? ')' <typelist>? <tags>? <body> ;
+function    : "func" (("operator" <overloadableops>) | <ident>) '(' <args>? ')' <typelist>? <body> ;
 
-structdef   : "struct" '{'
-                (<tags>? <declassign>)*
+structdef   : "struct" <tags>? '{'
+                (<tags>? <declassign> ';'?)*
               '}' ;
 
-structure   : "type" <ident> <structdef> ;
+structure   : <ident> <structdef> ;
 
-overloadableops : "<<" | ">>" | "<=>" | <comparators> | "-=" | "+="
-                | '/' | '*' | "--" | '-' | "++" | '+' | "()" | "[]" ;
+overloadableops : "<<="
+                | ">>="
+                | "&&"
+                | "||"
+                | "<<"
+                | ">>"
+                | ">="
+                | "<"
+                | ">"
+                | "!="
+                | "=="
+                | "-="
+                | "+="
+                | "|="
+                | "/="
+                | "%="
+                | "&="
+                | "^="
+                | "*="
+                | "|"
+                | "!"
+                | "~"
+                | "="
+                | "/"
+                | "*"
+                | "--"
+                | "-"
+                | "++"
+                | "+"
+                | "()"
+                | "[]" ;
+
+newoperator  : "operator" "new" "[]"? ;
+
+structopname : "operator" (<type> | <overloadableops>) ;
 
 structop    : "func" '(' "mut"? <ident> ')'
-                 "operator"(<type> | <overloadableops>)
-                   '(' (<args> | <typelist>)? ')' <type>? <tags>?
-                 (<body> | ('=' "default" ';')) ;
+                 <structopname> '(' (<args> | <typelist>)? ')' <type>?
+                 (<body> | ('=' "default")) ;
 
 structfunc  : "func" '(' "mut"? <ident> ')'
-                <ident> '(' <args>? ')' <typelist>? <tags>?
-                (<body> | ('=' "default" ';')) ;
+                <ident> '(' <args>? ')' <typelist>?
+                (<body> | ('=' "default")) ;
 
-interfacedef   : "interface" (':' <identifier> (',' <identifier>)*)? '{'
-                   (<fntype> <ident>? ';')+
+structmembername : <structopname>
+                 | <ident> ;
+
+interfacedef   : "interface" (':' <simplesymbolname> (',' <simplesymbolname>)*)? '{'
+                   (<fntype> <structmembername>)+
                  '}' ;
 
-interface   : "type" <ident> <interfacedef> ;
+interface   : <ident> <interfacedef> ;
 
-externfunc  : "extern" "func" <ident> '(' <typelist>? ')' <typelist>? ';' ;
+externfunc  : "extern" <fntype> <ident> ';'? ;
 
-exports     : "export" <identlist> ';' ;
+exports     : "export" <identlist> ';'? ;
 
-moduleuse   : "use" <identifier> ("hiding"? '{' <identlist> '}')?
-                   (("as" <ident>) | "qualified")? ';' ;
+moduleuse   : "use" <simplesymbolname> ('!'? '{' <identlist> '}')? ("as" <ident>)? ';'? ;
 
-moduledecl  : "module" <ident> ;
+moduledecl  : "module" <ident> ';'? ;
 
 compileropt : "{-" "OPTIONS" <identlist> "-}" ;
 
-whack       : /^/ <compileropt>*
+comment     : "//" /[^'\n']+/ | /[\n]/ ;
+
+whack       : /^/ (<compileropt> | <comment>)*
                   <moduledecl>
-                  <moduleuse>*
-                  <exports>*
+                  (<moduleuse> | <comment>)*
                   (
-                      <externfunc>
+                      <comment>
+                    | <externfunc>
+                    | <exports>
                     | <dataclass>
                     | <interface>
                     | <enumeration>

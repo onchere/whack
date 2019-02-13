@@ -19,8 +19,9 @@ import os, re
 from utils import read, write
 
 INTERNAL_DATA_TYPES = [
-	"bool", "int", "uint", "int64", "uint64", "char",
-	"void", "half", "float", "double", "auto"
+	"bool", "int8", "uint8", "int", "uint", "int64", "uint64", "short",
+	"char", "int16", "uint16", "void", "half", "float", "double", "auto",
+	"int32", "uint32", "int128", "uint128"
 ]
 
 INTERNAL_CONSTANTS = [
@@ -28,11 +29,11 @@ INTERNAL_CONSTANTS = [
 ]
 
 INTERNAL_TAGS = [
-	"inline", "mustinline"
+	"noinline", "inline", "mustinline", "noreturn", "align", "const"
 ]
 
 def getKeywordsList():
-	lines = read("../" + os.path.dirname(__file__) + "whack.grammar")
+	lines = read("../build/whack.grammar")
 	keywords = []
 	for line in lines.split('\n'):
 		match = re.findall('"[a-zA-Z_]+"', line)
@@ -53,9 +54,9 @@ def genKeywordsList():
 	s = ''
 	for keyword in keywords:
 		s += keyword[1:-1] + '|'
-	write('../keywords.txt', s[:-1] + "\n\n")
+	write('../include/whack/generated/keywords.txt', s[:-1] + "\n\n")
 	reserved = "inline constexpr static auto RESERVED = {" + ', '.join(keywords) + "};"
-	write('../reserved.def', reserved)
+	write('../include/whack/generated/reserved.def', reserved)
 
 def main():
     genKeywordsList()
