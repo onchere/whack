@@ -64,7 +64,7 @@ public:
         if (!m) {
           return m.takeError();
         }
-        mem =*m;
+        mem = *m;
       }
       const auto memType = mem->getType();
       auto type = types::Type{ast_->children[4]}.codegen(builder);
@@ -112,27 +112,6 @@ public:
 
 private:
   const mpc_ast_t* const ast_;
-};
-
-class NewExprStmt final : public stmts::Stmt {
-public:
-  explicit NewExprStmt(const mpc_ast_t* const ast)
-      : Stmt(kNewExpr), impl_{ast} {}
-
-  llvm::Error codegen(llvm::IRBuilder<>& builder) const final {
-    auto call = impl_.codegen(builder);
-    if (!call) {
-      return call.takeError();
-    }
-    return llvm::Error::success();
-  }
-
-  inline static bool classof(const Stmt* const stmt) {
-    return stmt->getKind() == kNewExpr;
-  }
-
-private:
-  const NewExpr impl_;
 };
 
 } // end namespace whack::codegen::expressions::factors

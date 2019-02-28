@@ -85,25 +85,6 @@ private:
   const llvm::StringRef op_;
 };
 
-class PreOpStmt final : public stmts::Stmt {
-public:
-  explicit PreOpStmt(const mpc_ast_t* const ast) : Stmt(kPreOp), impl_{ast} {}
-
-  llvm::Error codegen(llvm::IRBuilder<>& builder) const final {
-    if (auto val = impl_.codegen(builder); !val) {
-      return val.takeError();
-    }
-    return llvm::Error::success();
-  }
-
-  inline static bool classof(const Stmt* const stmt) {
-    return stmt->getKind() == kPreOp;
-  }
-
-private:
-  const PreOp impl_;
-};
-
 } // end namespace factors
 } // end namespace whack::codegen::expressions
 

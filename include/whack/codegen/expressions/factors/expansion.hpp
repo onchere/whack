@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <iostream>
+
 namespace whack::codegen::expressions::factors {
 
 class Expansion final : public Factor {

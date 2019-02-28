@@ -117,15 +117,9 @@ public:
     kFnSizeOf,
     kFnAlignOf,
     kFnOffsetOf,
-    kFnAppend,
-    kFnLen,
     kFnCast,
-    kFuncCall,
-    kReceive,
     kExpansion,
-    kExpandOp,
     kPreOp,
-    kPostOp,
     kValue,
     kMemberInitList,
     kInitList,
@@ -137,14 +131,12 @@ public:
     kHexaDecimal,
     kBoolean,
     kString,
-    kElement,
-    kStructMember,
     kScopeRes,
-    kReference,
     kDeref,
     kListComprehension,
     kNullPtr,
-    kIdent
+    kIdent,
+    kComposite
   };
 
 private:
@@ -197,14 +189,7 @@ public:
     kAssign,
     kOpEq,
     kComment,
-    kFuncCall,
-    kNewExpr,
-    kSend,
-    kReceive,
-    kOutStream,
-    kInStream,
-    kPreOp,
-    kPostOp
+    kExpression
   };
 
 private:
@@ -273,18 +258,6 @@ struct MatchInfo {
 
 static llvm::Expected<MatchInfo> getMatchInfo(const mpc_ast_t* const,
                                               llvm::IRBuilder<>&);
-
-// @todo
-static bool isUnsigned(llvm::Value* const value) {
-  if (const auto alloc = llvm::dyn_cast<llvm::AllocaInst>(value)) {
-    // only indicated if unsigned
-    // return hasTypeMetadata(alloc, "unsigned");
-    const auto MD = alloc->getMetadata(llvm::LLVMContext::MD_type);
-    return MD != nullptr &&
-           reinterpret_cast<llvm::MDString*>(MD)->getString() == "unsigned";
-  }
-  return false;
-}
 
 } // end namespace codegen
 } // end namespace whack

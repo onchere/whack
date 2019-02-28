@@ -68,8 +68,8 @@ public:
           return err;
         }
         const auto value = *val;
-        if (llvm::isa<llvm::AllocaInst>(value) &&
-            hasMetadata(value, llvm::LLVMContext::MD_dereferenceable)) {
+        constexpr static auto refMD = llvm::LLVMContext::MD_dereferenceable;
+        if (llvm::isa<llvm::AllocaInst>(value) && hasMetadata(value, refMD)) {
           value->setName(name);
         } else {
           auto v = expressions::getLoadedValue(builder, *val);
@@ -80,7 +80,7 @@ public:
           const auto alloc =
               builder.CreateAlloca(value->getType(), 0, nullptr, name);
           builder.CreateStore(value, alloc);
-          if (hasMetadata(value, llvm::LLVMContext::MD_dereferenceable)) {
+          if (hasMetadata(value, refMD)) {
             setIsDereferenceable(builder.getContext(), alloc);
           }
         }

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <whack/codegen/module.hpp>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ManagedStatic.h>
+#include <whack/codegen/module.hpp>
 
 // Some command-line args
 std::string InputFilename;
@@ -43,13 +43,13 @@ static cl::opt<std::string, true>
 
 static cl::opt<std::string, true>
     outputFile("o", cl::desc("Specify the output object filename"),
-               cl::value_desc("filename"), cl::Required,
-               cl::location(OutputObjectFilename));
+               cl::value_desc("filename"), cl::location(OutputObjectFilename),
+               cl::init(""));
 
 static cl::opt<std::string, true>
     exeFile("e", cl::desc("Specify the output executable filename"),
-            cl::value_desc("filename"), cl::Required,
-            cl::location(OutputExecutableFilename));
+            cl::value_desc("filename"), cl::location(OutputExecutableFilename),
+            cl::init(""));
 
 static cl::opt<bool, true> emitLLVM("emit-llvm",
                                     cl::desc("Whether to emit LLVM IR"),
@@ -63,12 +63,12 @@ static cl::opt<OptLevel, true>
                         clEnumVal(O2, "Enable default optimizations"),
                         clEnumVal(O3, "Enable aggresive optimizations")));
 
-static cl::opt<SizeOptLevel, true> sizeOptLevel(
-    cl::desc("Choose a size optimization level:"),
-    cl::location(SizeOptimizationLevel), cl::init(O0),
-    cl::values(clEnumVal(O0, "No size optimizations"),
-               clEnumVal(Os, "Optimize for size"),
-               clEnumVal(Oz, "Optimize for minimum size")));
+static cl::opt<SizeOptLevel, true>
+    sizeOptLevel(cl::desc("Choose a size optimization level:"),
+                 cl::location(SizeOptimizationLevel), cl::init(O0),
+                 cl::values(clEnumVal(O0, "No size optimizations"),
+                            clEnumVal(Os, "Optimize for size"),
+                            clEnumVal(Oz, "Optimize for minimum size")));
 
 int main(int argc, char** argv) {
   constexpr static auto Banner = "The Whack Compiler (pre-alpha)";

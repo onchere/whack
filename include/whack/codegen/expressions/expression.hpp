@@ -47,9 +47,9 @@ static small_vector<expr_t> getExprList(const mpc_ast_t* const ast) {
   return exprList;
 }
 
-static llvm::Expected<llvm::Value*>
-getLoadedValue(llvm::IRBuilder<>& builder, llvm::Value* const value,
-               const bool allowExpansion) {
+static llvm::Expected<llvm::Value*> getLoadedValue(llvm::IRBuilder<>& builder,
+                                                   llvm::Value* const value,
+                                                   const bool allowExpansion) {
   if (!allowExpansion && llvm::isa<factors::Expansion>(value)) {
     return error("cannot use expansion in this context");
   }

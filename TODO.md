@@ -1,5 +1,7 @@
 **TODO**
 ========
+- [ ] Better error management (should be on 'auto-pilot'), but no exceptions
+- [ ] Too many string comparisons; refactor mpc to use integral kinds for ast tags
 - [ ] Revisit Pointer, Reference semantics
 - [ ] Refactor/Redo types/type lists
 - [ ] Expand the reach of Comments
@@ -10,3 +12,4 @@
 - [ ] Support for stackless coroutines => support for iterators via `yield`?
 - [ ] Improve data classes
 - [ ] Other random refactoring/fixes/improvements...
+- [ ] Lots of refactoring and decoupling 

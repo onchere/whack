@@ -18,36 +18,17 @@
 
 #pragma once
 
-namespace whack::ast {
+namespace whack::codegen::expressions::factors {
 
 // Implements parameter list expansion e.g. fun(params...)
-class ExpandOp final : public Factor {
+class ExpandOp {
 public:
-  explicit ExpandOp(const mpc_ast_t* const ast)
-      : Factor(kExpandOp), state_{ast->state}, variable_{getFactor(
-                                                   ast->children[0])} {}
-
-  llvm::Expected<llvm::Value*> codegen(llvm::IRBuilder<>& builder) const final {
-    auto var = variable_->codegen(builder);
-    if (!var) {
-      return var.takeError();
-    }
-    const auto variable = *var;
-    // const auto elementType = Type::getElementType(variable->getType());
-    // const auto list = Type::getVariableLenArray(elementType);
-    // return list;
-    return error("not implemented");
+  static llvm::Expected<llvm::Value*> get(llvm::IRBuilder<>& builder,
+                                          llvm::Value* const value) {
+    return error("ExpandOp not implemented (relies on coroutines)!");
   }
-
-  inline static bool classof(const Factor* const factor) {
-    return factor->getKind() == kExpandOp;
-  }
-
-private:
-  const mpc_state_t state_;
-  std::unique_ptr<Factor> variable_;
 };
 
-} // end namespace whack::ast
+} // namespace whack::codegen::expressions::factors
 
 #endif // WHACK_EXPANDOP_HPP

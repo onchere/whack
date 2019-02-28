@@ -21,47 +21,51 @@ identlist : <ident> (',' <ident>)* ;
 
 scoperes : <ident> ("::" <ident>)+ ;
 
-simplesymbolname : <scoperes>
-                 | <ident> ;
+simplesym : <scoperes>
+          | <ident> ;
 
-overloadid : <simplesymbolname> "::" <structopname> ;
+overloadid : <simplesym> "::" <structopname> ;
 
 identifier : <overloadid>
-           | <simplesymbolname> ;
+           | <simplesym> ;
 
-factor : ('(' <expression> ')')
-       | (('!' | '*' | '+' | '-' | '~') <factor>)
-       | <matchexpr>
-       | <closure>
-       | <newexpr>
-       | <sizeofval>
-       | <alignofval>
-       | <offsetofval>
-       | <cast>
-       | <funccall>
-       | <expansion>
-       | <expandop>
-       | <preop>
-       | <postop>
-       | <value>
-       | <memberinitlist>
-       | <initlist>
-       | <character>
-       | <floatingpt>
-       | <binary>
-       | <octal>
-       | <hexadecimal>
-       | <integral>
-       | <boolean>
-       | <string>
-       | <reference>
-       | <element>
-       | <structmember>
-       | <identifier> ;
+factor :  (('!' | '*' | '~' | "--" | '-' | "++" | '+') <factor>)
+          | ( (
+                 ('(' <expression> ')')
+               | <matchexpr>
+               | <closure>
+               | <newexpr>
+               | <sizeofval>
+               | <alignofval>
+               | <offsetofval>
+               | <cast>
+               | <value>
+               | <memberinitlist>
+               | <initlist>
+               | <character>
+               | <floatingpt>
+               | <binary>
+               | <octal>
+               | <hexadecimal>
+               | <integral>
+               | <boolean>
+               | <expansion>
+               | <string>
+               | <identifier>
+              ) <composite>?
+            ) ;
+
+composite : (".." (<factor> "..")? ('='? <factor>)?)
+          | ('(' <exprlist>? ')' <composite>?)
+          | ('.' <structmember> <composite>?)
+          | ('[' <expression> ']' <composite>?)
+          | ("++" | "--")
+          | '&'
+          | <expansion> ;
 
 arraytype   : '[' <expression> ']' <type> ;
 
-fntype      : "func" '(' ((<typelist> ("->" <typelist>)?) | ("()" "->" <typelist>))? ')' ;
+fntype      : "func" '(' (<typelist> ("->" <typelist>)?)? ')' ;
 
 exprtype    : "type" '(' <expression> ')' ;
 
@@ -114,14 +118,6 @@ logicaland : <bitwiseor> ("&&" <bitwiseor>)* ;
 
 logicalor : <logicaland> ("||" <logicaland>)* ;
 
-callable : <closure>
-         | <overloadid>
-         | <scoperes>
-         | <variable> ;
-
-funccall : ("await" | "async")?
-           <callable> ("->" <callable>)* ('(' <exprlist>? ')')+ ;
-
 initlist : '{' <exprlist>? '}' ;
 
 memberinitlist : <ident> ':' <expression> (',' <ident> ':' <expression>)* ;
@@ -138,28 +134,6 @@ offsetofval : "offsetof" '(' <type> ',' <ident> ')' ;
 cast : "cast" '<' <type> '>' '(' <expression> ')' ;
 
 expansion : "..." ;
-
-expandop : <variable> <expansion> ;
-
-reference : <variable> '&' ;
-
-structmembercont : <ident> '.' ;
-
-structmember : <structmembercont> (<structopname> | <ident>) ;
-
-elementcont : <ident> '[' ;
-
-element : <elementcont> <expression> ']' ;
-
-variable : <element>
-         | <structmember>
-         | <ident> ;
-
-range : <factor> (".." (<factor> "..")? ('='? <factor>)?)? ;
-
-preop : ("--" | "++") <variable> ;
-
-postop : <variable> ("--" | "++") ;
 
 ternary : <logicalor> '?' <expression> ':' <expression> ;
 
@@ -194,11 +168,11 @@ typeswitch : "match" <exprtype> '{'
 
 assign : <factor> (',' <factor>)* '=' <exprlist> ;
 
-letbind : "let" <simplesymbolname> '(' <identlist> ')' '=' <expression> ;
+letbind : "let" <simplesym> '(' <identlist> ')' '=' <expression> ;
 
 ifstmt : "if" (<letbind> | <logicalor>) <stmt> ("else" <stmt>)? ;
 
-forinexpr : "for" <identlist> "in" <range> ("if" <logicalor>)? ;
+forinexpr : "for" <identlist> "in" <factor> ("if" <logicalor>)? ;
 
 forincrexpr : "for" (<stmt>+ | ';') <logicalor> ';' <stmt>* ;
 
@@ -209,7 +183,7 @@ forstmt : <forexpr> <stmt> ;
 
 whilestmt : "while" <logicalor> <stmt> ;
 
-opeq : <variable> ('&' | '|' | '+' | '-' | '^' | '%' | '/' | '*' | ">>" | "<<") '=' <expression> ;
+opeq : <factor> ('&' | '|' | '+' | '-' | '^' | '%' | '/' | '*' | ">>" | "<<") '=' <expression> ;
 
 declassign : <typeident> <initializer>? (',' <ident> <initializer>?)* ;
 
@@ -249,15 +223,12 @@ stmt : <body>
          | <assign>
          | <declassign>
          | <opeq>
-         | <funccall>
-         | <newexpr>
-         | <preop>
-         | <postop>
+         | <expression>
         ) ';'? ;
 
 body        : <tags>? '{' <stmt>* '}' ;
 
-tag         : <simplesymbolname> ('(' <exprlist> ')')? ;
+tag         : <simplesym> ('(' <exprlist> ')')? ;
 
 tags        : ('@' <tag>)
             | ('@' '(' <tag> (',' <tag>)* ')') ;
@@ -272,7 +243,8 @@ enumeration : <ident> <enumdef> ;
 
 dataclass   : <ident> <classdef> ;
 
-function    : "func" (("operator" <overloadableops>) | <ident>) '(' <args>? ')' <typelist>? <body> ;
+function    : "func" (("operator" <overloadableops>) | <ident>)
+              '(' <args>? ')' <typelist>? (<body> | ("=>" <stmt>)) ;
 
 structdef   : "struct" <tags>? '{'
                 (<tags>? <declassign> ';'?)*
@@ -316,19 +288,19 @@ newoperator  : "operator" "new" "[]"? ;
 
 structopname : "operator" (<type> | <overloadableops>) ;
 
-structop    : "func" '(' "mut"? <ident> ')'
-                 <structopname> '(' (<args> | <typelist>)? ')' <type>?
-                 (<body> | ('=' "default")) ;
+structop    : "func" '(' "mut"? <simplesym> ')'
+                <structopname> '(' (<args> | <typelist>)? ')' <type>?
+                ((<body> | ("=>" <stmt>)) | ('=' "default")) ;
 
-structfunc  : "func" '(' "mut"? <ident> ')'
+structfunc  : "func" '(' "mut"? <simplesym> ')'
                 <ident> '(' <args>? ')' <typelist>?
-                (<body> | ('=' "default")) ;
+                ((<body> | ("=>" <stmt>)) | ('=' "default")) ;
 
-structmembername : <structopname>
-                 | <ident> ;
+structmember : <structopname>
+             | <ident> ;
 
-interfacedef   : "interface" (':' <simplesymbolname> (',' <simplesymbolname>)*)? '{'
-                   (<fntype> <structmembername>)+
+interfacedef   : "interface" (':' <simplesym> (',' <simplesym>)*)? '{'
+                   (<fntype> <structmember> ';'?)+
                  '}' ;
 
 interface   : <ident> <interfacedef> ;
@@ -337,7 +309,7 @@ externfunc  : "extern" <fntype> <ident> ';'? ;
 
 exports     : "export" <identlist> ';'? ;
 
-moduleuse   : "use" <simplesymbolname> ('!'? '{' <identlist> '}')? ("as" <ident>)? ';'? ;
+moduleuse   : "use" <simplesym> ('!'? '{' <identlist> '}')? ("as" <ident>)? ';'? ;
 
 moduledecl  : "module" <ident> ';'? ;
 

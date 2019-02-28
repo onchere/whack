@@ -34,26 +34,24 @@ static llvm::Expected<llvm::Value*> getAdditive(llvm::IRBuilder<>&,
 
 namespace factors {
 
-class PostOp final : public Factor {
+class PostOp {
 public:
-  explicit PostOp(const mpc_ast_t* const ast)
-      : Factor(kPostOp), state_{ast->state}, val_{getFactor(ast->children[0])},
-        op_{ast->children[1]->contents} {}
-
-  llvm::Expected<llvm::Value*> codegen(llvm::IRBuilder<>& builder) const final {
-    auto v = val_->codegen(builder);
-    if (!v) {
-      return v.takeError();
+  static llvm::Expected<llvm::Value*>
+  get(llvm::IRBuilder<>& builder, llvm::Value* val, const llvm::StringRef op) {
+    llvm::Value* value;
+    if (llvm::isa<llvm::LoadInst>(val)) {
+      value = val;
+      val = llvm::cast<llvm::LoadInst>(val)->getPointerOperand();
+    } else {
+      value = builder.CreateLoad(val);
     }
-    const auto val = *v;
-    const auto value = builder.CreateLoad(val);
     const auto type = value->getType();
     if (type->isIntegerTy() || type->isFloatingPointTy()) {
       const auto incr = type->isIntegerTy() ? llvm::ConstantInt::get(type, 1)
                                             : llvm::ConstantFP::get(type, 1.0);
       using namespace expressions::operators;
       auto apply =
-          operators::getAdditive(builder, value, op_.drop_front(), incr);
+          operators::getAdditive(builder, value, op.drop_front(), incr);
       if (apply) {
         builder.CreateStore(*apply, val);
         return value;
@@ -64,48 +62,17 @@ public:
       static const auto postOpTag =
           llvm::ConstantInt::get(BasicTypes["int"], 1);
       if (auto apply =
-              operators::applyStructOperator(builder, val, op_, postOpTag)) {
+              operators::applyStructOperator(builder, val, op, postOpTag)) {
         if ((*apply)->getType()->isVoidTy()) {
           return *apply;
         }
         return llvm::cast<llvm::Value>(value);
       }
-      return error("cannot find operator{} for struct `{}` "
-                   "at line {}",
-                   op_.data(), type->getStructName().data(), state_.row + 1);
+      return error("cannot find operator{} for struct `{}`", op.data(),
+                   type->getStructName().data());
     }
-    return error("invalid type for operator{} at line {}", op_.data(),
-                 state_.row + 1);
+    return error("invalid type for operator{}", op.data());
   }
-
-  inline static bool classof(const Factor* const factor) {
-    return factor->getKind() == kPostOp;
-  }
-
-private:
-  const mpc_state_t state_;
-  const std::unique_ptr<Factor> val_;
-  const llvm::StringRef op_;
-};
-
-class PostOpStmt final : public stmts::Stmt {
-public:
-  explicit PostOpStmt(const mpc_ast_t* const ast) noexcept
-      : Stmt(kPostOp), impl_{ast} {}
-
-  llvm::Error codegen(llvm::IRBuilder<>& builder) const final {
-    if (auto val = impl_.codegen(builder); !val) {
-      return val.takeError();
-    }
-    return llvm::Error::success();
-  }
-
-  inline static bool classof(const Stmt* const stmt) {
-    return stmt->getKind() == kPostOp;
-  }
-
-private:
-  const PostOp impl_;
 };
 
 } // end namespace factors

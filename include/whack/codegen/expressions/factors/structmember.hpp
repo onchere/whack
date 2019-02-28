@@ -23,34 +23,25 @@
 
 namespace whack::codegen::expressions::factors {
 
-class StructMember final : public Factor {
+class StructMember {
 public:
-  explicit constexpr StructMember(const mpc_ast_t* const ast) noexcept
-      : Factor(kStructMember), ast_{ast} {}
-
-  llvm::Expected<llvm::Value*> codegen(llvm::IRBuilder<>& builder) const final {
-    auto cont =
-        getExpressionValue(ast_->children[0]->children[0])->codegen(builder);
-    if (!cont) {
-      return cont.takeError();
-    }
-    const auto memberRef = ast_->children[1];
+  static llvm::Expected<llvm::Value*> get(llvm::IRBuilder<>& builder,
+                                          llvm::Value* const container,
+                                          const mpc_ast_t* const memberName) {
     std::string member;
-    if (getInnermostAstTag(memberRef) == "structopname") {
-      auto name = getStructOpNameString(builder, getStructOpName(memberRef));
+    if (getInnermostAstTag(memberName) == "structopname") {
+      auto name = getStructOpNameString(builder, getStructOpName(memberName));
       if (!name) {
         return name.takeError();
       }
       member = std::move(*name);
     } else {
-      member = memberRef->contents;
+      member = memberName->contents;
     }
-
-    const auto container = *cont;
     auto type = container->getType();
     const auto typeError = [&] {
       return error("expected `{}` to be a struct type at line {}", member,
-                   ast_->state.row + 1);
+                   memberName->state.row + 1);
     };
     if (!type->isPointerTy()) {
       return typeError();
@@ -74,7 +65,7 @@ public:
       if (!memFun) {
         return error("`{}` is not a field or member function "
                      "for struct `{}` at line {}",
-                     member, structName.str(), memberRef->state.row + 1);
+                     member, structName.str(), memberName->state.row + 1);
       }
       mem = bindThis(builder, memFun, container);
     }
@@ -98,13 +89,6 @@ public:
            const llvm::StringRef memberName) {
     return getMetadataPartIndex(module, "structures", structName, memberName);
   }
-
-  inline static bool classof(const Factor* const factor) {
-    return factor->getKind() == kStructMember;
-  }
-
-private:
-  const mpc_ast_t* const ast_;
 };
 
 } // end namespace whack::codegen::expressions::factors

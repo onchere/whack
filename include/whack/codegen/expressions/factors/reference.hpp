@@ -20,29 +20,19 @@
 
 namespace whack::codegen::expressions::factors {
 
-class Reference final : public Factor {
+class Reference {
 public:
-  explicit Reference(const mpc_ast_t* const ast)
-      : Factor(kReference), variable_{getFactor(ast->children[0])} {}
-
-  llvm::Expected<llvm::Value*> codegen(llvm::IRBuilder<>& builder) const final {
-    auto variable = variable_->codegen(builder);
-    if (!variable) {
-      return variable.takeError();
+  static llvm::Value* const get(llvm::IRBuilder<>& builder,
+                                llvm::Value* const variable) {
+    if (llvm::isa<llvm::AllocaInst>(variable) &&
+        hasMetadata(variable, llvm::LLVMContext::MD_dereferenceable)) {
+      return variable;
     }
-    const auto ref =
-        builder.CreateAlloca((*variable)->getType(), 0, nullptr, "");
+    const auto ref = builder.CreateAlloca(variable->getType(), 0, nullptr, "");
     setIsDereferenceable(builder.getContext(), ref);
-    builder.CreateStore(*variable, ref);
+    builder.CreateStore(variable, ref);
     return ref;
   }
-
-  inline static bool classof(const Factor* const factor) {
-    return factor->getKind() == kReference;
-  }
-
-private:
-  const std::unique_ptr<Factor> variable_;
 };
 
 } // end namespace whack::codegen::expressions::factors

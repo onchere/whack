@@ -26,7 +26,7 @@ public:
 
   llvm::Expected<llvm::FunctionType*>
   codegen(llvm::IRBuilder<>& builder) const {
-    if (ast_->children_num < 4) {
+    if (ast_->children_num == 2) {
       return llvm::FunctionType::get(BasicTypes["void"], false);
     }
 
@@ -60,7 +60,14 @@ public:
         return typeList.takeError();
       }
       const auto& [paramTypes, variadic] = *typeList;
-      return llvm::FunctionType::get(*returnType, paramTypes, variadic);
+      if (paramTypes[0] == BasicTypes["void"]) {
+        if (paramTypes.size() != 1) {
+          return error("invalid type list in context at line {}",
+                       ast_->state.row + 1);
+        }
+      } else {
+        return llvm::FunctionType::get(*returnType, paramTypes, variadic);
+      }
     }
     return llvm::FunctionType::get(*returnType, false);
   }

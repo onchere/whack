@@ -51,24 +51,38 @@ using elements::CommentStmt;
 using elements::DataClassStmt;
 using elements::EnumerationStmt;
 using elements::StructureStmt;
-using expressions::factors::FuncCallStmt;
-using expressions::factors::NewExprStmt;
-using expressions::factors::PostOpStmt;
-using expressions::factors::PreOpStmt;
 
-static std::unique_ptr<Stmt> getStmt(const mpc_ast_t* const ast) {
-  auto ref = ast;
-  std::string tag;
-  if (getInnermostAstTag(ref) == "stmt") { //
-    ref = ref->children[0];
-    tag = getInnermostAstTag(ref).str();
-  } else {
-    tag = getTags(ref)[1].str();
+class ExpressionStmt : public Stmt {
+public:
+  explicit ExpressionStmt(const mpc_ast_t* const ast)
+      : Stmt(kExpression), state_{ast->state},
+        impl_{expressions::getExpressionValue(ast)} {}
+
+  llvm::Error codegen(llvm::IRBuilder<>& builder) const final {
+    auto expr = impl_->codegen(builder);
+    if (!expr) {
+      return expr.takeError();
+    }
+    if ((*expr)->getType() != BasicTypes["void"]) {
+      warning("expression value discarded at line {}", state_.row + 1);
+    }
+    return llvm::Error::success();
   }
 
+  inline static constexpr bool classof(const Stmt* const stmt) {
+    return stmt->getKind() == kExpression;
+  }
+
+private:
+  const mpc_state_t state_;
+  const expr_t impl_;
+};
+
+static std::unique_ptr<Stmt> getStmt(const mpc_ast_t* const ast) {
+  const auto tag = getInnermostAstTag(ast);
 #define OPT(RULE, CLASS)                                                       \
   if (tag == RULE) {                                                           \
-    return std::make_unique<CLASS>(ref);                                       \
+    return std::make_unique<CLASS>(ast);                                       \
   }
   OPT("body", Body)
   OPT("alias", AliasStmt)
@@ -81,10 +95,6 @@ static std::unique_ptr<Stmt> getStmt(const mpc_ast_t* const ast) {
   OPT("ifstmt", If)
   // OPT("forstmt", For)
   OPT("assign", Assign)
-  OPT("funccall", FuncCallStmt)
-  OPT("newexpr", NewExprStmt)
-  OPT("preop", PreOpStmt)
-  OPT("postop", PostOpStmt)
   OPT("typeswitch", TypeSwitch)
   OPT("opeq", OpEq)
   OPT("deletestmt", Delete)
@@ -98,7 +108,8 @@ static std::unique_ptr<Stmt> getStmt(const mpc_ast_t* const ast) {
   OPT("comment", CommentStmt)
   OPT("unreachable", Unreachable)
 #undef OPT
-  llvm_unreachable("invalid statement kind!");
+  // we assume this has to be an expression statement
+  return std::make_unique<ExpressionStmt>(ast);
 }
 
 } // end namespace stmts

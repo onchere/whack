@@ -13,43 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef WHACK_ELEMENT_HPP
-#define WHACK_ELEMENT_HPP
+#ifndef WHACK_ELEMENT_FACTOR_HPP
+#define WHACK_ELEMENT_FACTOR_HPP
 
 #pragma once
 
 namespace whack::codegen::expressions::factors {
 
-class Element final : public Factor {
+class Element {
 public:
-  explicit Element(const mpc_ast_t* const ast)
-      : Factor(kElement), state_{ast->state},
-        container_{getFactor(ast->children[0]->children[0])},
-        index_{getExpressionValue(ast->children[1])} {}
-
-  llvm::Expected<llvm::Value*> codegen(llvm::IRBuilder<>& builder) const final {
-    auto container = container_->codegen(builder);
-    if (!container) {
-      return container.takeError();
-    }
-    auto cont = getLoadedValue(builder, *container);
+  static llvm::Expected<llvm::Value*>
+  get(llvm::IRBuilder<>& builder, llvm::Value* cont, llvm::Value* const idx) {
     const auto typeError = [&] {
-      return error("expected an aggregate type to extract element at line {}",
-                   state_.row + 1);
+      return error("expected an aggregate type to extract element");
     };
     auto contType = cont->getType();
     if (llvm::isa<llvm::LoadInst>(cont)) {
-      cont = llvm::cast<llvm::LoadInst>(cont)->getPointerOperand();
-      contType = cont->getType()->getPointerElementType();
+      const auto operand =
+          llvm::cast<llvm::LoadInst>(cont)->getPointerOperand();
+      if (llvm::isa<llvm::AllocaInst>(operand)) {
+        cont = operand;
+        contType = cont->getType()->getPointerElementType();
+      }
     }
     if (!(contType->isAggregateType() || contType->isPointerTy())) {
       return typeError();
     }
-    auto index = index_->codegen(builder);
-    if (!index) {
-      return index.takeError();
-    }
-    const auto idx = getLoadedValue(builder, *index);
     llvm::Value* elt;
     if (contType->isArrayTy()) {
       elt = builder.CreateInBoundsGEP(cont, {Integral::get(0), idx});
@@ -61,17 +50,8 @@ public:
     setIsDereferenceable(builder.getContext(), ret);
     return ret;
   }
-
-  inline static bool classof(const Factor* const factor) {
-    return factor->getKind() == kElement;
-  }
-
-private:
-  const mpc_state_t state_;
-  const std::unique_ptr<Factor> container_;
-  const expr_t index_;
 };
 
 } // end namespace whack::codegen::expressions::factors
 
-#endif // WHACK_ELEMENT_HPP
+#endif // WHACK_ELEMENT_FACTOR_HPP

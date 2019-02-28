@@ -19,6 +19,7 @@
 #pragma once
 
 #include "../../elements/args.hpp"
+#include "reference.hpp"
 #include <llvm/IR/ValueSymbolTable.h>
 
 namespace whack::codegen::expressions::factors {
@@ -37,29 +38,25 @@ public:
           ++idx;
           break;
         }
-        if (ref->children_num) {
-          const auto name = ref->children[0]->contents;
-          // @todo
-          const bool isRef =
-              std::string_view(ref->children[1]->contents) == "&";
-          explicitCaptures_[name] =
-              getExpressionValue(ref->children[isRef ? 0 : 2]);
+        const std::string_view view{ref->contents};
+        if (view == "=") {
+          if (defaultCaptureMode_ != None) {
+            warning("default capture mode for closure re-declared "
+                    "at line {}",
+                    ref->state.row + 1);
+          }
+          defaultCaptureMode_ = AllByValue;
+        } else if (view == "&") {
+          if (defaultCaptureMode_ != None) {
+            warning("default capture mode for closure re-declared "
+                    "at line {}",
+                    ref->state.row + 1);
+          }
+          defaultCaptureMode_ = AllByReference;
         } else {
-          const std::string_view view{ref->contents};
-          if (view == "=") {
-            if (defaultCaptureMode_ != None) {
-              warning("default capture mode for closure re-declared "
-                      "at line {}",
-                      ref->state.row + 1);
-            }
-            defaultCaptureMode_ = AllByValue;
-          } else if (view == "&") {
-            if (defaultCaptureMode_ != None) {
-              warning("default capture mode for closure re-declared "
-                      "at line {}",
-                      ref->state.row + 1);
-            }
-            defaultCaptureMode_ = AllByReference;
+          if (ref->children_num) {
+            explicitCaptures_[ref->children[0]->contents] =
+                getExpressionValue(ref->children[2]);
           } else {
             explicitCaptures_[ref->contents] = getExpressionValue(ref);
           }
@@ -98,40 +95,39 @@ public:
     small_vector<llvm::Value*> scopedValues;
     small_vector<llvm::StringRef> scopedNames;
 
-    if (defaultCaptureMode_ == AllByReference) {
-      return error("capturing all closure variable(s) explicitly"
-                   " by reference is not implemented at line {}",
-                   state_.row + 1);
-    } else if (defaultCaptureMode_ == AllByValue) {
-      // we inherit any captured variables if enclosing function is a closure
-      if (enclosingFn->getName().startswith("::closure")) {
-        if (!enclosingFn->arg_empty()) {
-          const auto enclosingEnv =
-              llvm::cast<llvm::Value>(&enclosingFn->arg_begin()[0]);
-          // we ensure first parameter is an environment structure
-          if (enclosingEnv->getName() == ".env") {
-            const auto enclosingEnvType =
-                enclosingEnv->getType()->getPointerElementType();
-            scopedNames = getMetadataParts(*module, "structures",
-                                           enclosingEnvType->getStructName());
-            for (size_t i = 0; i < scopedNames.size(); ++i) {
-              const auto ptr = builder.CreateStructGEP(enclosingEnvType,
-                                                       enclosingEnv, i, "");
-              const auto val = builder.CreateLoad(ptr);
-              scopedValues.push_back(val);
-              scopedTypes.push_back(val->getType());
-            }
+    // we inherit any captured variables if enclosing function is a closure
+    if (enclosingFn->getName().startswith("::closure")) {
+      if (!enclosingFn->arg_empty()) {
+        const auto enclosingEnv =
+            llvm::cast<llvm::Value>(&enclosingFn->arg_begin()[0]);
+        // we ensure first parameter is an environment structure
+        if (enclosingEnv->getName() == ".env") {
+          const auto enclosingEnvType =
+              enclosingEnv->getType()->getPointerElementType();
+          scopedNames = getMetadataParts(*module, "structures",
+                                         enclosingEnvType->getStructName());
+          for (size_t i = 0; i < scopedNames.size(); ++i) {
+            const auto ptr =
+                builder.CreateStructGEP(enclosingEnvType, enclosingEnv, i, "");
+            const auto val = builder.CreateLoad(ptr);
+            scopedValues.push_back(val);
+            scopedTypes.push_back(val->getType());
           }
         }
       }
+    }
+
+    if (defaultCaptureMode_ != None) {
+      const auto byRef = defaultCaptureMode_ == AllByReference;
       for (const auto& symbol : *enclosingFn->getValueSymbolTable()) {
         const auto val = symbol.getValue();
         if (!val->getType()->isSized() ||
             val->getName().find('.') != llvm::StringRef::npos) {
           continue;
         }
-        scopedValues.push_back(val);
-        scopedTypes.push_back(val->getType());
+        const auto value = byRef ? Reference::get(builder, val) : val;
+        scopedValues.push_back(value);
+        scopedTypes.push_back(value->getType());
         scopedNames.push_back(val->getName());
       }
     }
@@ -142,7 +138,7 @@ public:
           scopedNames.end()) {
         return error("variable name `{}` already in use "
                      "for closure capture list at line {}",
-                     name.str(), state_.row + 1);
+                     name.data(), state_.row + 1);
       }
       scopedNames.push_back(name);
       auto val = capture.getValue()->codegen(builder);
@@ -188,7 +184,7 @@ public:
                                 names[i]) != scopedNames.end()) {
           return error("parameter name `{}` for closure already exists "
                        "as a scoped variable name at line {}",
-                       names[i].str(), state_.row + 1);
+                       names[i].data(), state_.row + 1);
         }
         func->arg_begin()[i + j].setName(names[i]);
       }

@@ -23,8 +23,8 @@
 #include "boolean.hpp"
 #include "character.hpp"
 #include "closure.hpp"
+#include "composite.hpp"
 #include "deref.hpp"
-#include "element.hpp"
 #include "expansion.hpp"
 #include "floatingpt.hpp"
 #include "fnalignof.hpp"
@@ -44,7 +44,6 @@
 #include "nullptr.hpp"
 #include "octal.hpp"
 #include "overloadid.hpp"
-#include "postop.hpp"
 #include "preop.hpp"
 #include "reference.hpp"
 #include "scoperes.hpp"
@@ -71,66 +70,6 @@ private:
   const expr_t factor_;
 };
 
-class Element final : public Factor {
-public:
-  explicit Element(const mpc_ast_t* const ast)
-      : Factor(kElement), state_{ast->state},
-        container_{getFactor(ast->children[0]->children[0])},
-        index_{getExpressionValue(ast->children[1])} {}
-
-  llvm::Expected<llvm::Value*> codegen(llvm::IRBuilder<>& builder) const final {
-    auto container = container_->codegen(builder);
-    if (!container) {
-      return container.takeError();
-    }
-    auto c = getLoadedValue(builder, *container);
-    if (!c) {
-      return c.takeError();
-    }
-    auto cont = *c;
-    const auto typeError = [&] {
-      return error("expected an aggregate type to extract element at line {}",
-                   state_.row + 1);
-    };
-    auto contType = cont->getType();
-    if (llvm::isa<llvm::LoadInst>(cont)) {
-      cont = llvm::cast<llvm::LoadInst>(cont)->getPointerOperand();
-      contType = cont->getType()->getPointerElementType();
-    }
-    if (!(contType->isAggregateType() || contType->isPointerTy())) {
-      return typeError();
-    }
-    auto index = index_->codegen(builder);
-    if (!index) {
-      return index.takeError();
-    }
-    auto id = getLoadedValue(builder, *index);
-    if (!id) {
-      return id.takeError();
-    }
-    const auto idx = *id;
-    llvm::Value* elt;
-    if (contType->isArrayTy()) {
-      elt = builder.CreateInBoundsGEP(cont, {Integral::get(0), idx});
-    } else {
-      elt = builder.CreateGEP(cont, idx);
-    }
-    const auto ret = builder.CreateAlloca(elt->getType(), 0, nullptr, "");
-    builder.CreateStore(elt, ret);
-    setIsDereferenceable(builder.getContext(), ret);
-    return ret;
-  }
-
-  inline static bool classof(const Factor* const factor) {
-    return factor->getKind() == kElement;
-  }
-
-private:
-  const mpc_state_t state_;
-  const std::unique_ptr<Factor> container_;
-  const expr_t index_;
-};
-
 static std::unique_ptr<Factor> getFactor(const mpc_ast_t* const ast) {
   const auto tag = getInnermostAstTag(ast);
   if (tag == "factor") {
@@ -153,6 +92,10 @@ static std::unique_ptr<Factor> getFactor(const mpc_ast_t* const ast) {
     if (view == "~") {
       // @todo
     }
+    if (view == "++" || view == "--") {
+      return std::make_unique<PreOp>(ast);
+    }
+    return std::make_unique<CompositeFactor>(ast);
   }
 
 #define OPT(RULE, CLASS)                                                       \
@@ -166,9 +109,6 @@ static std::unique_ptr<Factor> getFactor(const mpc_ast_t* const ast) {
   OPT("alignofval", FnAlignOf)
   OPT("offsetofval", FnOffsetOf)
   OPT("cast", FnCast)
-  OPT("funccall", FuncCall)
-  OPT("preop", PreOp)
-  OPT("postop", PostOp)
   OPT("value", Value)
   OPT("memberinitlist", MemberInitList)
   OPT("initlist", InitList)
@@ -179,11 +119,7 @@ static std::unique_ptr<Factor> getFactor(const mpc_ast_t* const ast) {
   OPT("hexadecimal", HexaDecimal)
   OPT("integral", Integral)
   OPT("boolean", Boolean)
-  OPT("reference", Reference)
-  OPT("element", Element)
-  OPT("structmember", StructMember)
   OPT("scoperes", ScopeRes)
-
 #undef OPT
 
   if (tag == "ident") {

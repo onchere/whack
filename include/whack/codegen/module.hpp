@@ -96,7 +96,7 @@ public:
     if (auto err = this->emitObjectFile(module.get())) {
       return err;
     }
-    return this->link();
+    return this->link(module.get());
   }
 
   // @todo Test
@@ -218,9 +218,12 @@ private:
 
   llvm::Error emitObjectFile(const llvm::Module* const module) {
     char* err;
+    const auto outputObjectFilename =
+        OutputObjectFilename.size() ? OutputObjectFilename
+                                    : module->getModuleIdentifier() + ".o";
     const auto e = LLVMTargetMachineEmitToFile(
         MainTarget->getMachine(), llvm::wrap(module),
-        const_cast<char*>(OutputObjectFilename.c_str()), LLVMObjectFile, &err);
+        const_cast<char*>(outputObjectFilename.c_str()), LLVMObjectFile, &err);
     if (e) {
       auto ret = error(err);
       LLVMDisposeMessage(err);
@@ -229,14 +232,21 @@ private:
     return llvm::Error::success();
   }
 
-  llvm::Error link() {
+  llvm::Error link(const llvm::Module* const module) {
     if (!llvm::sys::findProgramByName("gcc")) {
       return error("Could not find `gcc` on your system PATH. "
                    "Please find MinGW GCC at "
                    "https://nuwen.net and install.");
     }
-    const auto command = format("gcc runtime.o {} -o {}", OutputObjectFilename,
-                                OutputExecutableFilename);
+    const auto outputObjectFilename =
+        OutputObjectFilename.size() ? OutputObjectFilename
+                                    : module->getModuleIdentifier() + ".o";
+    const auto outputExecutableFilename =
+        OutputExecutableFilename.size()
+            ? OutputExecutableFilename
+            : module->getModuleIdentifier() + ".exe";
+    const auto command = format("gcc runtime.o {} -o {}", outputObjectFilename,
+                                outputExecutableFilename);
     system(command.c_str()); // @todo llvm::sys::ExecuteAndWait
     return llvm::Error::success();
   }
@@ -520,7 +530,7 @@ importModuleImpl(llvm::Module* const destModule,
 static llvm::Error importModule(llvm::Module* const destModule,
                                 const ModuleImportInfo importInfo) {
   using namespace llvm::sys;
-  llvm::SmallString<1024> thisPath;
+  llvm::SmallString<255> thisPath;
   (void)fs::make_absolute(thisPath);
   const auto modulePath = importInfo.modulePath.data();
   auto path = format("{}/{}", thisPath.c_str(), modulePath);
