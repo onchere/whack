@@ -19,7 +19,7 @@ project(whack VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE "Release")
 set(LLVM_INSTALL_DIR "C:/code/llvm-6.0.1.src")
-set(FOLLY_INSTALL_DIR "C:/code/folly-2018.08.20.00")
+set(FOLLY_INSTALL_DIR "C:/code/folly-2019.03.04.00")
 set(SPDLOG_INSTALL_DIR "C:/code/spdlog-1.1.0")
 set(CMAKE_CXX_FLAGS "-Wall -DFOLLY_NO_CONFIG -L${LLVM_INSTALL_DIR}/build/bin -lLLVM")
 

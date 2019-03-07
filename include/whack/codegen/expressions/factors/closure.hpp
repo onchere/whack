@@ -30,9 +30,9 @@ public:
 
   explicit Closure(const mpc_ast_t* const ast)
       : Factor(kClosure), state_{ast->state} {
-    auto idx = 2;
-    if (std::string_view(ast->children[1]->contents) == "[") {
-      for (idx = 2; idx < ast->children_num; idx += 2) {
+    auto idx = 1;
+    if (std::string_view(ast->children[0]->contents) == "[") {
+      for (; idx < ast->children_num; idx += 2) {
         const auto ref = ast->children[idx];
         if (getOutermostAstTag(ref) != "capture") {
           ++idx;

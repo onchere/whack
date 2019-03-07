@@ -56,14 +56,14 @@ static llvm::Expected<llvm::Value*> getLoadedValue(llvm::IRBuilder<>& builder,
   static constexpr auto MetadataID = llvm::LLVMContext::MD_dereferenceable;
   auto ret = value;
   if (hasMetadata(ret, MetadataID)) {
-    ret = builder.CreateLoad(ret);
+    ret = align(builder.CreateLoad(ret));
   }
   if (llvm::isa<llvm::AllocaInst>(ret)) {
-    ret = builder.CreateLoad(ret);
+    ret = align(builder.CreateLoad(ret));
   } else if (llvm::isa<llvm::LoadInst>(ret)) {
     if (hasMetadata(llvm::cast<llvm::LoadInst>(ret)->getPointerOperand(),
                     MetadataID)) {
-      ret = builder.CreateLoad(ret);
+      ret = align(builder.CreateLoad(ret));
     }
   }
   return ret;

@@ -30,7 +30,7 @@ public:
       type_ = types::Type{ast->children[0]->children[0]};
       llvm::StringRef var{ast->children[0]->children[1]->contents};
       vars_.push_back(var);
-      for (auto i = 2; i < ast->children_num; ++i) {
+      for (auto i = 1; i < ast->children_num; ++i) {
         const auto curr = ast->children[i];
         if (getOutermostAstTag(curr) == "initializer") {
           using namespace expressions::factors;
@@ -53,43 +53,25 @@ public:
       return tp.takeError();
     }
     const auto type = *tp;
-    const bool isUnsigned =
-        type->isIntegerTy() ? type_.isUnsignedIntTy() : false;
     using namespace expressions::factors;
     for (const auto& var : vars_) {
       if (auto err = Ident::isUnique(builder, var)) {
         return err;
       }
-      const auto ptr = builder.CreateAlloca(type, 0, nullptr, var);
-      if (isUnsigned) {
-        // addTypeMetadata(ptr, "unsigned");
-      }
+      bool found = false;
       for (const auto& [varName, initializer] : initializers_) {
         if (var == varName) {
-          const auto list = initializer->list();
-          llvm::Value* init = nullptr;
-          switch (list.index()) {
-          case 0: // <initlist>
-          {
-            auto val = std::get<InitList>(list).codegen(builder, type);
-            if (!val) {
-              return val.takeError();
-            }
-            init = *val;
-            break;
+          auto init = initializer->codegen(builder, type);
+          if (!init) {
+            return init.takeError();
           }
-          default: // <memberinitlist>
-          {
-            auto val = std::get<MemberInitList>(list).codegen(builder, type);
-            if (!val) {
-              return val.takeError();
-            }
-            init = *val;
-            break;
-          }
-          }
-          builder.CreateStore(init, ptr);
+          (*init)->setName(var);
+          found = true;
+          break;
         }
+      }
+      if (!found) {
+        builder.CreateAlloca(type, 0, nullptr, var);
       }
     }
     return llvm::Error::success();

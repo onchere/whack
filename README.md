@@ -11,15 +11,12 @@
 - Currently supporting Windows (I'm on Windows).
 - To view current progress, run `whack.exe` in snapshot folder.
 - We're developing executable semantics for the language concurrently,
-which can be found [here](https://github.com/onchere/whack).
+which can be found [here](https://github.com/onchere/whack-semantics).
 
 *Progress*
 ==========
 Pre-Alpha.
 This repository is a dump of what is currently on my Sublime Text.
-I've began refactoring the code, and writing the
-[formal semantics](https://github.com/onchere/whack-semantics) in parallel,
-to assist in counter-checking stuff we're doing here.
 
 *Non-Goals*
 ===========
@@ -38,7 +35,7 @@ Requirements
 
 *Development*
 ==============
-- Facebook.Folly (Release folly-2018.08.20.00).
+- Facebook.Folly (Release folly-2019.03.04.00).
 - spdlog (Release spdlog-1.1.0).
 - LLVM (Release 6.0.1).
 - *Running* requirements.
@@ -47,4 +44,4 @@ Requirements
 =========
 - `gcc` must be available on your PATH (MinGW GCC is available at [Nuwen.net](http://nuwen.net)).
 - LLVM DLL (To be provided in snapshot folder - extract LLVM.dll.rar).
-- Command: `whack -g whack.grammar -o main.o -e main.exe main.w`
+- Command: `whack -g whack.grammar main.w`

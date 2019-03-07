@@ -66,13 +66,13 @@ public:
         return llvm::Error::success();
       }
       if (hasMetadata(variable, llvm::LLVMContext::MD_dereferenceable)) {
-        variable = builder.CreateLoad(variable);
+        variable = align(builder.CreateLoad(variable));
       }
       const auto varType = variable->getType()->getPointerElementType();
       if (value->getType() != varType) {
         return error("type mismatch: cannot assign at line {}", state_.row + 1);
       }
-      builder.CreateStore(value, variable);
+      align(builder.CreateStore(value, variable));
       return llvm::Error::success();
     };
 

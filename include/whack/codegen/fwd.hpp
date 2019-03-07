@@ -40,6 +40,44 @@ inline static auto& getGlobalContext() noexcept {
   return *reinterpret_cast<llvm::LLVMContext*>(LLVMGetGlobalContext());
 }
 
+// @todo
+static unsigned getAlignment(llvm::Type* const type) {
+  if (type == BasicTypes["char"]) {
+    return 1;
+  }
+  // if (type == BasicTypes["int"]) {
+  //   return 4;
+  // }
+  if (type->isIntegerTy()) {
+    return 4;
+  }
+  if (type->isPointerTy()) {
+    return 8;
+  }
+  // @todo
+  if (const auto arrayTy = llvm::dyn_cast<llvm::ArrayType>(type)) {
+    if (arrayTy->getNumElements() > 3) {
+      return 16;
+    }
+    return 4;
+  }
+  // @todo
+  return 8;
+}
+
+static auto align(llvm::Value* const value) {
+  if (const auto inst = llvm::dyn_cast<llvm::Instruction>(value)) {
+    const auto type = inst->getType();
+    if (const auto load = llvm::dyn_cast<llvm::LoadInst>(inst)) {
+      load->setAlignment(getAlignment(type));
+    }
+    if (const auto alloc = llvm::dyn_cast<llvm::AllocaInst>(inst)) {
+      alloc->setAlignment(getAlignment(alloc->getAllocatedType()));
+    }
+  }
+  return value;
+}
+
 static auto getTags(const mpc_ast_t* const ast) {
   small_vector<llvm::StringRef> rules;
   llvm::StringRef{ast->tag}.split(rules, '|');

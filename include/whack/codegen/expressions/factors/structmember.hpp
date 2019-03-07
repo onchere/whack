@@ -40,8 +40,8 @@ public:
     }
     auto type = container->getType();
     const auto typeError = [&] {
-      return error("expected `{}` to be a struct type at line {}", member,
-                   memberName->state.row + 1);
+      return error("expected `{}` to be a struct type at line {}",
+                   container->getName().data(), memberName->state.row + 1);
     };
     if (!type->isPointerTy()) {
       return typeError();
@@ -57,7 +57,7 @@ public:
     if (const auto idx = getIndex(*module, structName, member)) {
       mem = builder.CreateStructGEP(type, container, idx.value(), member);
       if (structName.startswith("interface::")) { // @todo Necessary??
-        mem = builder.CreateLoad(mem);
+        mem = align(builder.CreateLoad(mem));
       }
     } else {
       const auto memFun = module->getFunction(
@@ -65,12 +65,12 @@ public:
       if (!memFun) {
         return error("`{}` is not a field or member function "
                      "for struct `{}` at line {}",
-                     member, structName.str(), memberName->state.row + 1);
+                     member, structName.data(), memberName->state.row + 1);
       }
       mem = bindThis(builder, memFun, container);
     }
-    const auto ret = builder.CreateAlloca(mem->getType(), 0, nullptr, "");
-    builder.CreateStore(mem, ret);
+    const auto ret = align(builder.CreateAlloca(mem->getType(), 0, nullptr, ""));
+    align(builder.CreateStore(mem, ret));
     setIsDereferenceable(builder.getContext(), ret);
     return ret;
   }

@@ -51,8 +51,8 @@ public:
         }
         const auto value = builder.CreateExtractValue(*expr, i, "");
         const auto alloc =
-            builder.CreateAlloca(value->getType(), 0, nullptr, name);
-        builder.CreateStore(value, alloc);
+            align(builder.CreateAlloca(value->getType(), 0, nullptr, name));
+        align(builder.CreateStore(value, alloc));
       }
     } else if (exprList_.size() == identList_.size()) {
       for (size_t i = 0; i < identList_.size(); ++i) {
@@ -70,6 +70,7 @@ public:
         const auto value = *val;
         constexpr static auto refMD = llvm::LLVMContext::MD_dereferenceable;
         if (llvm::isa<llvm::AllocaInst>(value) && hasMetadata(value, refMD)) {
+          align(value);
           value->setName(name);
         } else {
           auto v = expressions::getLoadedValue(builder, *val);
@@ -78,8 +79,8 @@ public:
           }
           const auto value = *v;
           const auto alloc =
-              builder.CreateAlloca(value->getType(), 0, nullptr, name);
-          builder.CreateStore(value, alloc);
+              align(builder.CreateAlloca(value->getType(), 0, nullptr, name));
+          align(builder.CreateStore(value, alloc));
           if (hasMetadata(value, refMD)) {
             setIsDereferenceable(builder.getContext(), alloc);
           }

@@ -90,13 +90,16 @@ public:
       if (!v) {
         return v.takeError();
       }
-      const auto val = *v;
-      if (val->getType() != ptr->getType()->getPointerElementType()) {
+      auto val = getLoadedValue(builder, *v, false);
+      if (!val) {
+        return val.takeError();
+      }
+      if ((*val)->getType() != ptr->getType()->getPointerElementType()) {
         return error("type mismatch: cannot assign value to "
                      "field `{}` of struct `{}` at line {}",
                      member.data(), structName, state_.row + 1);
       }
-      builder.CreateStore(val, ptr);
+      builder.CreateStore(*val, ptr);
     }
     return obj;
   }

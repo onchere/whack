@@ -37,12 +37,12 @@ public:
     std::function<ret_t(llvm::Value* const, const mpc_ast_t* const)>
         aggregateMember;
     aggregateMember = [&builder, &aggregateMember](
-                          llvm::Value* const base,
+                          llvm::Value* base,
                           const mpc_ast_t* const composite) -> ret_t {
       if (!composite->children_num) {
         const std::string_view hint{composite->contents};
         if (hint == "..") {
-          // @todo Range iterator
+          // @todo Range iteration
           return error("range iteration not implemented");
         }
         if (hint == "++" || hint == "--") {
@@ -63,12 +63,14 @@ public:
         // @todo Range
         return error("ranges not implemented");
       }
+      if (hasMetadata(base, llvm::LLVMContext::MD_dereferenceable)) {
+        base = builder.CreateLoad(base);
+      }
       if (hint == "(") {
-        auto func = base;
         if (llvm::isa<llvm::AllocaInst>(base)) {
-          func = builder.CreateLoad(base);
+          base = builder.CreateLoad(base);
         }
-        small_vector<llvm::Value*> funcs = {func};
+        const small_vector<llvm::Value*> funcs{base};
         small_vector<llvm::Value*> arguments;
         const mpc_ast_t* next = nullptr;
         if (composite->children_num > 2 &&
@@ -92,7 +94,9 @@ public:
           return call.takeError();
         }
         if (next != nullptr) {
-          return aggregateMember(*call, next);
+          auto cont = builder.CreateAlloca((*call)->getType(), 0, nullptr, "");
+          builder.CreateStore(*call, cont);
+          return aggregateMember(cont, next);
         }
         return *call;
       }

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "../expressions/factors/structmember.hpp"
 #include <llvm/IR/Attributes.h>
 
 namespace whack::codegen::elements {
@@ -60,6 +61,12 @@ public:
       return error("cannot find struct `{}` for function `{}` "
                    "at line {}",
                    structName_, funcName_, state_.row + 1);
+    }
+
+    using namespace expressions::factors;
+    if (StructMember::getIndex(*module, structName_, funcName_)) {
+      return error("member `{}` already exists for struct `{}` at line {}",
+                   funcName_, structName_, state_.row + 1);
     }
 
     const auto name = format("struct::{}::{}", structName_, funcName_);

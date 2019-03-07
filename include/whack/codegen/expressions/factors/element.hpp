@@ -24,29 +24,28 @@ class Element {
 public:
   static llvm::Expected<llvm::Value*>
   get(llvm::IRBuilder<>& builder, llvm::Value* cont, llvm::Value* const idx) {
-    const auto typeError = [&] {
-      return error("expected an aggregate type to extract element");
-    };
-    auto contType = cont->getType();
-    if (llvm::isa<llvm::LoadInst>(cont)) {
-      const auto operand =
-          llvm::cast<llvm::LoadInst>(cont)->getPointerOperand();
-      if (llvm::isa<llvm::AllocaInst>(operand)) {
-        cont = operand;
-        contType = cont->getType()->getPointerElementType();
+    const auto type = cont->getType();
+    // @todo
+    if (const auto load = llvm::dyn_cast<llvm::LoadInst>(cont)) {
+      if (const auto alloc =
+              llvm::dyn_cast<llvm::AllocaInst>(load->getPointerOperand())) {
+        if (alloc->getType()->getPointerElementType()->isArrayTy()) {
+          cont = alloc;
+        }
       }
     }
-    if (!(contType->isAggregateType() || contType->isPointerTy())) {
-      return typeError();
+    if (!(type->isAggregateType() || type->isPointerTy())) {
+      return error("expected an aggregate type to extract element");
     }
     llvm::Value* elt;
-    if (contType->isArrayTy()) {
+    if (type->isArrayTy()) {
       elt = builder.CreateInBoundsGEP(cont, {Integral::get(0), idx});
     } else {
       elt = builder.CreateGEP(cont, idx);
     }
-    const auto ret = builder.CreateAlloca(elt->getType(), 0, nullptr, "");
-    builder.CreateStore(elt, ret);
+    const auto ret =
+        align(builder.CreateAlloca(elt->getType(), 0, nullptr, ""));
+    align(builder.CreateStore(elt, ret));
     setIsDereferenceable(builder.getContext(), ret);
     return ret;
   }

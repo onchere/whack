@@ -79,7 +79,7 @@ private:
 };
 
 static std::unique_ptr<Stmt> getStmt(const mpc_ast_t* const ast) {
-  const auto tag = getInnermostAstTag(ast);
+  const auto tag = getTags(ast)[1];
 #define OPT(RULE, CLASS)                                                       \
   if (tag == RULE) {                                                           \
     return std::make_unique<CLASS>(ast);                                       \

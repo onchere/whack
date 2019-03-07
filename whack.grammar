@@ -92,7 +92,8 @@ typelist    : <variadictype>
 
 capture : '&' | '=' | (<ident> ('&' | ('=' <expression>))?) ;
 
-closure : "func" ('[' (<capture> (',' <capture>)*)? ']')? '(' <args>? ')' <typelist>? <body> ;
+closure : ('[' (<capture> (',' <capture>)*)? ']')? '(' <args>? ')'
+          <typelist>? (<body> | ("=>" <stmt>)) ;
 
 newexpr : "new" ('(' <expression> ')')? <type> <initializer>? ;
 
@@ -122,7 +123,7 @@ initlist : '{' <exprlist>? '}' ;
 
 memberinitlist : <ident> ':' <expression> (',' <ident> ':' <expression>)* ;
 
-initializer : '{' <memberinitlist> '}'
+initializer : ('{' <memberinitlist> '}')
             | <initlist> ;
 
 value : <type> <initializer> ;
